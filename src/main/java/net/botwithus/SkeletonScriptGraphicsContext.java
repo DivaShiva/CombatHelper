@@ -58,6 +58,11 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
                         script.printCachedSlots();
                     }
                     
+                    ImGui.Separator();
+                    ImGui.Text("Rotation Options");
+                    script.setUseVulnBombs(ImGui.Checkbox("Use vuln bombs?", script.isUseVulnBombs()));
+                    script.setUseDeathMark(ImGui.Checkbox("Use Death Mark?", script.isUseDeathMark()));
+                    
                     ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Other", ImGuiWindowFlag.None.getValue())) {

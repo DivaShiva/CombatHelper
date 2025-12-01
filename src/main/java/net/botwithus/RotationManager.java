@@ -72,6 +72,7 @@ public class RotationManager {
         put("Command Vengeful Ghost", 0);   // No cooldown (tracked by flag instead)
         put("Touch of Death", 24);          // 14.4 seconds
         put("Soul Sap", 9);                 // 5.4 seconds
+        put("Invoke Death", 0);             // No cooldown (applies Death Mark debuff)
         put("Basic<nbsp>Attack", 0);        // No cooldown
     }};
     
@@ -466,7 +467,7 @@ public class RotationManager {
             "Death Skulls", "Split Soul", "Living Death", "Volley of Souls",
             "Finger of Death", "Bloat", "Weapon Special Attack", "Essence of Finality",
             "Conjure Undead Army", "Life Transfer", "Touch of Death", "Soul Sap",
-            "Basic<nbsp>Attack"
+            "Invoke Death", "Basic<nbsp>Attack"
         };
         
         // Pairs of abilities that share the same slot (Conjure transforms to Command)
@@ -580,6 +581,116 @@ public class RotationManager {
     }
     
     /**
+     * Ensure target has Death Mark - uses Invoke Death ability if not
+     * @return true if ability was used this tick (consumes GCD), false otherwise
+     */
+    public boolean ensureDeathMarked() {
+        try {
+            // Check Death Mark varbit (53247)
+            boolean deathMarked = VarManager.getVarbitValue(53247) == 1;
+            
+            if (deathMarked) {
+                invokeDeathBuffActive = false; // Death Mark applied, buff consumed
+                return false; // Already applied, don't consume GCD
+            }
+            
+            // If Invoke Death buff is active, wait for next attack to apply it
+            if (invokeDeathBuffActive) {
+                debugLog("[DEATH MARK] Invoke Death buff active, waiting for next attack to apply");
+                return false; // Don't recast, let normal rotation continue
+            }
+            
+            // Check if Invoke Death is ready
+            if (!isAbilityReady("Invoke Death")) {
+                debugLog("[DEATH MARK] Invoke Death not ready");
+                return false;
+            }
+            
+            // Target not death marked, use Invoke Death ability
+            debugLog("[DEATH MARK] Target not death marked, using Invoke Death");
+            boolean success = useAbility("Invoke Death");
+            
+            if (success) {
+                recordAbilityUse("Invoke Death");
+                invokeDeathBuffActive = true; // Buff is now active
+                debugLog("[DEATH MARK] Successfully used Invoke Death - buff active");
+                return true; // Ability used, consumes GCD
+            }
+            
+            debugLog("[DEATH MARK] Failed to use Invoke Death");
+            return false;
+            
+        } catch (Exception e) {
+            debugLog("[ERROR] Exception in ensureDeathMarked: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Ensure target is vulnerabled - uses Vulnerability Bomb if not
+     * @return true if target is vulnerabled or bomb was used successfully
+     */
+    public boolean ensureVulned() {
+        try {
+            // Check vulnerability varbit (1939)
+            boolean vulned = VarManager.getVarbitValue(1939) == 1;
+            
+            if (vulned) {
+                return true;
+            }
+            
+            // Check if we recently threw a bomb (wait 5 ticks for it to land + apply)
+            int ticksSinceLastBomb = serverTick - lastVulnBombTick;
+            if (ticksSinceLastBomb < 5) {
+                debugLog("[VULN] Waiting for bomb to land (" + ticksSinceLastBomb + "/5 ticks)");
+                return false;
+            }
+            
+            // Target not vulnerabled and enough time has passed, try to use Vulnerability Bomb
+            debugLog("[VULN] Target not vulnerabled, attempting to use Vulnerability Bomb");
+            
+            boolean success = false;
+            
+            // Try action bar first
+            if (ActionBar.containsItem("Vulnerability bomb")) {
+                success = ActionBar.useItem("Vulnerability bomb", "Throw");
+                if (success) {
+                    debugLog("[VULN] Successfully used Vulnerability Bomb from action bar");
+                }
+            }
+            
+            // Fallback to backpack
+            if (!success && Backpack.contains("Vulnerability bomb")) {
+                success = Backpack.interact("Vulnerability bomb", "Throw");
+                if (success) {
+                    debugLog("[VULN] Successfully used Vulnerability Bomb from backpack");
+                }
+            }
+            
+            if (success) {
+                lastVulnBombTick = serverTick;
+                return true;
+            }
+            
+            debugLog("[VULN] Vulnerability Bomb not found or failed to use");
+            return false;
+            
+        } catch (Exception e) {
+            debugLog("[ERROR] Exception in ensureVulned: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    // Track if Death Skulls was last used during Living Death
+    private boolean deathSkullsUsedDuringLD = false;
+    
+    // Track last vuln bomb throw to prevent spam (2.4 seconds = 4 ticks to land)
+    private int lastVulnBombTick = -10;
+    
+    // Track if Invoke Death buff is active (waiting for next attack to apply Death Mark)
+    private boolean invokeDeathBuffActive = false;
+    
+    /**
      * Get the remaining cooldown of an ability in ticks based on manual tracking
      * @return remaining cooldown in ticks, or 0 if ready
      */
@@ -589,21 +700,24 @@ public class RotationManager {
             return 0; // No cooldown or unknown ability
         }
         
+        Integer lastUsed = lastUsedTick.get(abilityName);
+        if (lastUsed == null) {
+            return 0; // Never used, so it's ready
+        }
+        
         // Special case: Death Skulls has reduced cooldown during Living Death
         if (abilityName.equals("Death Skulls")) {
             Integer livingDeathUsed = lastUsedTick.get("Living Death");
             if (livingDeathUsed != null) {
                 int ticksSinceLivingDeath = serverTick - livingDeathUsed;
                 // Living Death lasts 30 seconds (50 ticks)
-                if (ticksSinceLivingDeath < 50) {
-                    maxCooldown = 20; // 12 seconds during Living Death
+                boolean livingDeathActive = ticksSinceLivingDeath < 50;
+                
+                if (livingDeathActive || deathSkullsUsedDuringLD) {
+                    // During Living Death OR if last use was during LD: 12 second cooldown
+                    maxCooldown = 20;
                 }
             }
-        }
-        
-        Integer lastUsed = lastUsedTick.get(abilityName);
-        if (lastUsed == null) {
-            return 0; // Never used, so it's ready
         }
         
         int ticksSinceUse = serverTick - lastUsed;
@@ -649,7 +763,26 @@ public class RotationManager {
         if (abilityName.equals("Living Death")) {
             lastUsedTick.remove("Death Skulls");
             lastUsedTick.remove("Touch of Death");
+            deathSkullsUsedDuringLD = false; // Reset the flag
             debugLog("[COOLDOWN] Living Death reset Death Skulls and Touch of Death cooldowns");
+        }
+        
+        // Special case: Track if Death Skulls is used during Living Death
+        if (abilityName.equals("Death Skulls")) {
+            Integer livingDeathUsed = lastUsedTick.get("Living Death");
+            if (livingDeathUsed != null) {
+                int ticksSinceLivingDeath = serverTick - livingDeathUsed;
+                // Living Death lasts 30 seconds (50 ticks)
+                if (ticksSinceLivingDeath < 50) {
+                    deathSkullsUsedDuringLD = true;
+                    debugLog("[COOLDOWN] Death Skulls used during Living Death - will keep 12s cooldown");
+                } else {
+                    deathSkullsUsedDuringLD = false;
+                    debugLog("[COOLDOWN] Death Skulls used outside Living Death - back to 60s cooldown");
+                }
+            } else {
+                deathSkullsUsedDuringLD = false;
+            }
         }
         
         // Special case: Conjure Undead Army resets Command Ghost usage flag

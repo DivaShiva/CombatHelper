@@ -27,6 +27,8 @@ public class SkeletonScript extends LoopingScript {
 
     private BotState botState = BotState.IDLE;
     private boolean someBool = true;
+    private boolean useVulnBombs = false;
+    private boolean useDeathMark = false;
     private Random random = new Random();
     private int lastLoggedClientCycle = 0;
     private int serverTicks = 0;
@@ -77,6 +79,22 @@ public class SkeletonScript extends LoopingScript {
         
         // Execute every 3 server ticks (1.8 seconds)
         if (serverTicks - lastAbilityServerTick >= 3) {
+            // HIGHEST PRIORITY: Check and apply Death Mark if enabled
+            if (useDeathMark) {
+                boolean deathMarkUsed = rotation.ensureDeathMarked();
+                if (deathMarkUsed) {
+                    lastAbilityServerTick = serverTicks;
+                    println("Tick " + serverTicks + " - Using: Invoke Death");
+                    return; // Skip normal rotation this tick
+                }
+            }
+            
+            // Check and apply vulnerability if enabled
+            if (useVulnBombs) {
+                rotation.ensureVulned();
+            }
+            
+            // Execute normal rotation
             if (rotation.execute()) {
                 lastAbilityServerTick = serverTicks;
                 String ability = rotation.getLastAbilityUsed();
@@ -204,6 +222,22 @@ public class SkeletonScript extends LoopingScript {
 
     public void setSomeBool(boolean someBool) {
         this.someBool = someBool;
+    }
+    
+    public boolean isUseVulnBombs() {
+        return useVulnBombs;
+    }
+    
+    public void setUseVulnBombs(boolean useVulnBombs) {
+        this.useVulnBombs = useVulnBombs;
+    }
+    
+    public boolean isUseDeathMark() {
+        return useDeathMark;
+    }
+    
+    public void setUseDeathMark(boolean useDeathMark) {
+        this.useDeathMark = useDeathMark;
     }
     
     /**
