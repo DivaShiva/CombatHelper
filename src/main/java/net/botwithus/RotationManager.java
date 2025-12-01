@@ -353,7 +353,7 @@ public class RotationManager {
             
             try {
                 if (isAbilityReady("Weapon Special Attack") && adrenaline >= 27 &&
-                    (adrenaline != 100 || livingDeathCooldown > 10) && necrosisStacks >= 4 &&
+                    (adrenaline != 100 || livingDeathCooldown < 10) && necrosisStacks >= 4 &&
                     (serverTick - lastWeaponSpecialTick >= 100)) {
                     ability = "Weapon Special Attack";
                     lastWeaponSpecialTick = serverTick;
@@ -364,7 +364,7 @@ public class RotationManager {
             
             try {
                 if (isAbilityReady("Essence of Finality") && adrenaline >= 23 &&
-                    (adrenaline != 100 || livingDeathCooldown > 10) && necrosisStacks >= 4 &&
+                    (adrenaline != 100 || livingDeathCooldown < 10) && necrosisStacks >= 4 &&
                     (serverTick - lastEssenceOfFinalityTick >= 50)) {
                     ability = "Essence of Finality";
                     lastEssenceOfFinalityTick = serverTick;

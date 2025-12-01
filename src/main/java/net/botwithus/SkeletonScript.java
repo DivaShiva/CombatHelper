@@ -79,6 +79,12 @@ public class SkeletonScript extends LoopingScript {
             return;
         }
         
+        // Check if player has a target
+        LocalPlayer player = Client.getLocalPlayer();
+        if (player == null || player.getTarget() == null) {
+            return; // No target, don't execute rotation
+        }
+        
         // Execute every 3 server ticks (1.8 seconds)
         if (serverTicks - lastAbilityServerTick >= 3) {
             // HIGHEST PRIORITY: Check and apply Death Mark if enabled
