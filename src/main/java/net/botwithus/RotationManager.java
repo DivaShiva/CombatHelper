@@ -334,8 +334,7 @@ public class RotationManager {
             try {
                 if (necrosisStacks >= 6 && isAbilityReady("Finger of Death") && 
                     (adrenaline != 100 || livingDeathCooldown > 10 || !spend)) {
-                    ability = "Finger of Death";
-                    debugLog("[IMPROV]: Normal - Finger of Death");
+                    ability = "Finger of Death";               debugLog("[IMPROV]: Normal - Finger of Death");
                     return ability;
                 }
             } catch (Exception e) { debugLog("[ERROR] Finger of Death check: " + e.getMessage()); }
