@@ -39,6 +39,38 @@ subscribe(ServerTickedEvent.class, event -> {
 });
 ```
 
+#### Constructor Arguments Explained
+
+```java
+new RotationManager(String name, boolean spend)
+```
+
+**Parameters:**
+- `name` (String): Display name for the rotation (used in logs)
+  - Example: `"Necromancy Rotation"`, `"My Combat Rotation"`
+  - Only used for identification in debug messages
+  
+- `spend` (boolean): Whether to spend adrenaline on ultimate abilities
+  - `true` = Use Living Death when at 100% adrenaline (aggressive)
+  - `false` = Never use Living Death, save adrenaline (conservative)
+  - Affects Living Death usage in normal rotation
+  - Does NOT affect other abilities
+
+**Examples:**
+```java
+// Aggressive - uses Living Death
+rotation = new RotationManager("Aggressive Necro", true);
+
+// Conservative - saves adrenaline, no Living Death
+rotation = new RotationManager("Conservative Necro", false);
+
+// Boss fighting - use ultimates
+rotation = new RotationManager("Boss Rotation", true);
+
+// Slayer - save adrenaline for next mob
+rotation = new RotationManager("Slayer Rotation", false);
+```
+
 ### 3. Execute Rotation
 
 ```java
