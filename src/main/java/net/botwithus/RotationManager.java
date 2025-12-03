@@ -81,12 +81,17 @@ public class RotationManager {
     private long lastSlotCacheUpdate = 0;
     private boolean slotCacheInitialized = false;
     
+    // Settings
+    private boolean useLivingDeath = true; // Use Living Death ultimate
+    private boolean useAdrenalineRenewal = false; // Drink Adrenaline Renewal with Living Death
+    
     public RotationManager(String name, boolean spend) {
         this.name = name;
         this.spend = spend;
         this.lastExecutionTick = 0;
         this.debug = false;
         this.logger = System.out::println; // Default to System.out
+        this.useLivingDeath = spend; // Initialize from constructor parameter
     }
     
     public void setDebug(boolean debug) {
@@ -308,7 +313,7 @@ public class RotationManager {
             } catch (Exception e) { debugLog("[ERROR] Death Skulls check: " + e.getMessage()); }
             
             try {
-                if (isAbilityReady("Split Soul")) {
+                if (useSplitSoul && isAbilityReady("Split Soul")) {
                     ability = "Split Soul";
                     debugLog("[IMPROV]: Normal - Split Soul");
                     return ability;
@@ -316,7 +321,7 @@ public class RotationManager {
             } catch (Exception e) { debugLog("[ERROR] Split Soul check: " + e.getMessage()); }
             
             try {
-                if (spend && targetHealth > 20000 && isAbilityReady("Living Death") && adrenaline >= 100) {
+                if (useLivingDeath && spend && targetHealth > 20000 && isAbilityReady("Living Death") && adrenaline >= 100) {
                     ability = "Living Death";
                     debugLog("[IMPROV]: Normal - Living Death");
                     return ability;
@@ -607,6 +612,22 @@ public class RotationManager {
         return useAdrenalineRenewal;
     }
     
+    public void setUseLivingDeath(boolean useLivingDeath) {
+        this.useLivingDeath = useLivingDeath;
+    }
+    
+    public boolean isUseLivingDeath() {
+        return useLivingDeath;
+    }
+    
+    public void setUseSplitSoul(boolean useSplitSoul) {
+        this.useSplitSoul = useSplitSoul;
+    }
+    
+    public boolean isUseSplitSoul() {
+        return useSplitSoul;
+    }
+    
     /**
      * Drink Adrenaline Renewal potion
      */
@@ -746,6 +767,9 @@ public class RotationManager {
     
     // Setting: Use Adrenaline Renewal with Living Death
     private boolean useAdrenalineRenewal = false;
+    
+    // Setting: Use Split Soul
+    private boolean useSplitSoul = true; // Default enabled
     
     // Flag to drink Adrenaline Renewal on next tick (after Living Death fires)
     private boolean drinkAdrenNextTick = false;

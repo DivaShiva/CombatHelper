@@ -63,6 +63,8 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
                     script.setUseVulnBombs(ImGui.Checkbox("Use vuln bombs?", script.isUseVulnBombs()));
                     script.setUseDeathMark(ImGui.Checkbox("Use Death Mark?", script.isUseDeathMark()));
                     script.setUseAdrenalineRenewal(ImGui.Checkbox("Drink Adrenaline Renewal?", script.isUseAdrenalineRenewal()));
+                    script.setUseSplitSoul(ImGui.Checkbox("Use Split Soul?", script.isUseSplitSoul()));
+                    script.setUseLivingDeath(ImGui.Checkbox("Use Living Death?", script.isUseLivingDeath()));
                     
                     ImGui.EndTabItem();
                 }

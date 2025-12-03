@@ -30,6 +30,8 @@ public class SkeletonScript extends LoopingScript {
     private boolean useVulnBombs = false;
     private boolean useDeathMark = false;
     private boolean useAdrenalineRenewal = false;
+    private boolean useSplitSoul = true; // Default enabled
+    private boolean useLivingDeath = true; // Default enabled
     private Random random = new Random();
     private int lastLoggedClientCycle = 0;
     private int serverTicks = 0;
@@ -54,6 +56,8 @@ public class SkeletonScript extends LoopingScript {
         rotation.setDebug(true);
         rotation.setLogger(this::println); // Use script's println for logging
         rotation.setUseAdrenalineRenewal(useAdrenalineRenewal); // Initialize setting
+        rotation.setUseLivingDeath(useLivingDeath); // Initialize setting
+        rotation.setUseSplitSoul(useSplitSoul); // Initialize setting
         
         // Subscribe to server tick events
         subscribe(ServerTickedEvent.class, event -> {
@@ -256,6 +260,28 @@ public class SkeletonScript extends LoopingScript {
         this.useAdrenalineRenewal = useAdrenalineRenewal;
         if (rotation != null) {
             rotation.setUseAdrenalineRenewal(useAdrenalineRenewal);
+        }
+    }
+    
+    public boolean isUseSplitSoul() {
+        return useSplitSoul;
+    }
+    
+    public void setUseSplitSoul(boolean useSplitSoul) {
+        this.useSplitSoul = useSplitSoul;
+        if (rotation != null) {
+            rotation.setUseSplitSoul(useSplitSoul);
+        }
+    }
+    
+    public boolean isUseLivingDeath() {
+        return useLivingDeath;
+    }
+    
+    public void setUseLivingDeath(boolean useLivingDeath) {
+        this.useLivingDeath = useLivingDeath;
+        if (rotation != null) {
+            rotation.setUseLivingDeath(useLivingDeath);
         }
     }
     
