@@ -84,6 +84,8 @@ public class RotationManager {
     // Settings
     private boolean useLivingDeath = true; // Use Living Death ultimate
     private boolean useAdrenalineRenewal = false; // Drink Adrenaline Renewal with Living Death
+    private boolean useEssenceOfFinality = true; // Use Essence of Finality special attack
+    private boolean useWeaponSpecial = true; // Use Weapon Special Attack
     
     public RotationManager(String name, boolean spend) {
         this.name = name;
@@ -356,7 +358,7 @@ public class RotationManager {
             } catch (Exception e) { debugLog("[ERROR] Bloat check: " + e.getMessage()); }
             
             try {
-                if (isAbilityReady("Weapon Special Attack") && adrenaline >= 27 &&
+                if (useWeaponSpecial && isAbilityReady("Weapon Special Attack") && adrenaline >= 27 &&
                     (adrenaline != 100 || livingDeathCooldown < 10) && necrosisStacks >= 4 &&
                     (serverTick - lastWeaponSpecialTick >= 100)) {
                     ability = "Weapon Special Attack";
@@ -367,7 +369,7 @@ public class RotationManager {
             } catch (Exception e) { debugLog("[ERROR] Weapon Special check: " + e.getMessage()); }
             
             try {
-                if (isAbilityReady("Essence of Finality") && adrenaline >= 23 &&
+                if (useEssenceOfFinality && isAbilityReady("Essence of Finality") && adrenaline >= 23 &&
                     (adrenaline != 100 || livingDeathCooldown < 10) && necrosisStacks >= 4 &&
                     (serverTick - lastEssenceOfFinalityTick >= 50)) {
                     ability = "Essence of Finality";
@@ -597,6 +599,11 @@ public class RotationManager {
         this.lastExecutionTick = 0;
         debugLog("Rotation reset");
     }
+
+        public void resetDeathMark() {
+        this.invokeDeathBuffActive = false;
+        debugLog("[DEATH MARK] Reset - ready to apply to new target");
+    }
     
 
     
@@ -610,6 +617,22 @@ public class RotationManager {
     
     public boolean isUseAdrenalineRenewal() {
         return useAdrenalineRenewal;
+    }
+    
+    public void setUseEssenceOfFinality(boolean useEssenceOfFinality) {
+        this.useEssenceOfFinality = useEssenceOfFinality;
+    }
+    
+    public boolean isUseEssenceOfFinality() {
+        return useEssenceOfFinality;
+    }
+    
+    public void setUseWeaponSpecial(boolean useWeaponSpecial) {
+        this.useWeaponSpecial = useWeaponSpecial;
+    }
+    
+    public boolean isUseWeaponSpecial() {
+        return useWeaponSpecial;
     }
     
     public void setUseLivingDeath(boolean useLivingDeath) {

@@ -32,6 +32,8 @@ public class SkeletonScript extends LoopingScript {
     private boolean useAdrenalineRenewal = false;
     private boolean useSplitSoul = true; // Default enabled
     private boolean useLivingDeath = true; // Default enabled
+    private boolean useEssenceOfFinality = true; // Default enabled
+    private boolean useWeaponSpecial = true; // Default enabled
     private Random random = new Random();
     private int lastLoggedClientCycle = 0;
     private int serverTicks = 0;
@@ -56,6 +58,8 @@ public class SkeletonScript extends LoopingScript {
         rotation.setDebug(true);
         rotation.setLogger(this::println); // Use script's println for logging
         rotation.setUseAdrenalineRenewal(useAdrenalineRenewal); // Initialize setting
+        rotation.setUseEssenceOfFinality(useEssenceOfFinality); // Initialize setting
+        rotation.setUseWeaponSpecial(useWeaponSpecial); // Initialize setting
         rotation.setUseLivingDeath(useLivingDeath); // Initialize setting
         rotation.setUseSplitSoul(useSplitSoul); // Initialize setting
         
@@ -260,6 +264,28 @@ public class SkeletonScript extends LoopingScript {
         this.useAdrenalineRenewal = useAdrenalineRenewal;
         if (rotation != null) {
             rotation.setUseAdrenalineRenewal(useAdrenalineRenewal);
+        }
+    }
+    
+    public boolean isUseEssenceOfFinality() {
+        return useEssenceOfFinality;
+    }
+    
+    public void setUseEssenceOfFinality(boolean useEssenceOfFinality) {
+        this.useEssenceOfFinality = useEssenceOfFinality;
+        if (rotation != null) {
+            rotation.setUseEssenceOfFinality(useEssenceOfFinality);
+        }
+    }
+    
+    public boolean isUseWeaponSpecial() {
+        return useWeaponSpecial;
+    }
+    
+    public void setUseWeaponSpecial(boolean useWeaponSpecial) {
+        this.useWeaponSpecial = useWeaponSpecial;
+        if (rotation != null) {
+            rotation.setUseWeaponSpecial(useWeaponSpecial);
         }
     }
     
