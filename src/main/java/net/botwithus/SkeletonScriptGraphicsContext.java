@@ -141,7 +141,7 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
                     ImGui.NextColumn();
                 }
                 
-                ImGui.Columns(1);
+                ImGui.Columns(1, "SingleColumn", false);
                 ImGui.Separator();
                 
                 // Recent ability usage log
