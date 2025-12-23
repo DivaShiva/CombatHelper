@@ -132,11 +132,11 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
                     }
                     ImGui.NextColumn();
                     
-                    // Status with color
+                    // Status
                     if (ready) {
-                        ImGui.TextColored(0, 255, 0, 255, "READY"); // Green
+                        ImGui.Text("✓ READY");
                     } else {
-                        ImGui.TextColored(255, 165, 0, 255, "ON CD"); // Orange
+                        ImGui.Text("⏱ ON CD");
                     }
                     ImGui.NextColumn();
                 }
