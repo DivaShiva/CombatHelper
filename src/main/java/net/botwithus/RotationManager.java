@@ -725,42 +725,8 @@ public class RotationManager {
      * @return remaining cooldown in ticks, or 0 if ready
      */
     public int getPublicAbilityCooldown(String abilityName) {
-        // Before returning cooldown, validate that abilities with 0 cooldown are actually ready
-        int cooldown = getAbilityCooldown(abilityName);
-        
-        // If an ability shows as having a cooldown but should be ready, validate it
-        if (cooldown > 0) {
-            Integer lastUsed = lastUsedTick.get(abilityName);
-            if (lastUsed != null) {
-                // Check if enough time has passed that it should be ready
-                Integer maxCooldown = ABILITY_COOLDOWNS.get(abilityName);
-                if (maxCooldown != null && maxCooldown > 0) {
-                    int ticksSinceUse = serverTick - lastUsed;
-                    
-                    // Special handling for Death Skulls during Living Death
-                    int expectedCooldown = maxCooldown;
-                    if (abilityName.equals("Death Skulls")) {
-                        Integer livingDeathUsed = lastUsedTick.get("Living Death");
-                        if (livingDeathUsed != null) {
-                            int ticksSinceLivingDeath = serverTick - livingDeathUsed;
-                            boolean livingDeathActive = ticksSinceLivingDeath < 50;
-                            if (livingDeathActive || deathSkullsUsedDuringLD) {
-                                expectedCooldown = 20; // Reduced cooldown during Living Death
-                            }
-                        }
-                    }
-                    
-                    // If enough time has passed, the ability should be ready
-                    if (ticksSinceUse >= expectedCooldown) {
-                        debugLog("[AUTO-VALIDATION] " + abilityName + " should be ready (used " + ticksSinceUse + " ticks ago, CD: " + expectedCooldown + ") - removing from tracking");
-                        lastUsedTick.remove(abilityName);
-                        return 0; // Now ready
-                    }
-                }
-            }
-        }
-        
-        return cooldown;
+        // The core getAbilityCooldown method now handles auto-validation
+        return getAbilityCooldown(abilityName);
     }
     
     /**
@@ -1072,7 +1038,14 @@ public class RotationManager {
         int ticksSinceUse = serverTick - lastUsed;
         int remaining = maxCooldown - ticksSinceUse;
         
-        return Math.max(0, remaining);
+        // AUTO-VALIDATION: If enough time has passed, remove from tracking
+        if (remaining <= 0) {
+            debugLog("[AUTO-VALIDATION] " + abilityName + " cooldown expired (used " + ticksSinceUse + " ticks ago, CD: " + maxCooldown + ") - removing from tracking");
+            lastUsedTick.remove(abilityName);
+            return 0;
+        }
+        
+        return remaining;
     }
     
     /**
