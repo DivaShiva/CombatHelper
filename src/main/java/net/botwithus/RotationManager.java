@@ -720,6 +720,15 @@ public class RotationManager {
     }
     
     /**
+     * Get the cooldown of an ability (public method for GUI)
+     * @param abilityName the ability to check
+     * @return remaining cooldown in ticks, or 0 if ready
+     */
+    public int getPublicAbilityCooldown(String abilityName) {
+        return getAbilityCooldown(abilityName);
+    }
+    
+    /**
      * Validate that the previous ability was actually used by checking its cooldown
      */
     private void validatePreviousAbilityUse() {

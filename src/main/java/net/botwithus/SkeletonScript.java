@@ -115,6 +115,9 @@ public class SkeletonScript extends LoopingScript {
                 lastAbilityServerTick = serverTicks;
                 String ability = rotation.getLastAbilityUsed();
                 println("Tick " + serverTicks + " - Using: " + ability);
+                
+                // Add to GUI log
+                addToAbilityLog(ability);
             }
         }
     }
@@ -343,6 +346,32 @@ public class SkeletonScript extends LoopingScript {
         } else {
             println("[ERROR] Rotation manager not initialized");
         }
+    }
+    
+    /**
+     * Get the rotation manager for GUI access
+     */
+    public RotationManager getRotation() {
+        return rotation;
+    }
+    
+    // Recent ability log for GUI display
+    private String[] recentAbilityLog = new String[10];
+    private int logIndex = 0;
+    
+    /**
+     * Add an ability to the recent log
+     */
+    public void addToAbilityLog(String ability) {
+        recentAbilityLog[logIndex] = "Tick " + serverTicks + ": " + ability;
+        logIndex = (logIndex + 1) % recentAbilityLog.length;
+    }
+    
+    /**
+     * Get recent ability log for GUI
+     */
+    public String[] getRecentAbilityLog() {
+        return recentAbilityLog;
     }
    
 }

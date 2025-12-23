@@ -78,7 +78,89 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
             }
             ImGui.End();
         }
-
+        
+        // Separate Cooldown Tracking Window
+        drawCooldownTracker();
+    }
+    
+    private void drawCooldownTracker() {
+        if (ImGui.Begin("Ability Cooldown Tracker", ImGuiWindowFlag.None.getValue())) {
+            ImGui.Text("Real-time Ability Tracking");
+            ImGui.Separator();
+            
+            // Get rotation manager from script
+            if (script.getRotation() != null) {
+                RotationManager rotation = script.getRotation();
+                
+                // Current and Previous Ability
+                ImGui.Text("Current Ability: " + rotation.getLastAbilityUsed());
+                ImGui.Text("Previous Ability: " + rotation.getPreviousAbilityUsed());
+                ImGui.Text("Sequence: " + rotation.getRotationSequenceInfo());
+                ImGui.Separator();
+                
+                // Key Necromancy Abilities with Cooldowns
+                String[] trackedAbilities = {
+                    "Death Skulls", "Split Soul", "Living Death", "Touch of Death",
+                    "Bloat", "Weapon Special Attack", "Essence of Finality",
+                    "Conjure Undead Army", "Life Transfer", "Command Skeleton Warrior",
+                    "Soul Sap"
+                };
+                
+                ImGui.Text("Ability Cooldowns:");
+                ImGui.Columns(3, "CooldownColumns", true);
+                ImGui.Text("Ability");
+                ImGui.NextColumn();
+                ImGui.Text("Cooldown");
+                ImGui.NextColumn();
+                ImGui.Text("Status");
+                ImGui.NextColumn();
+                ImGui.Separator();
+                
+                for (String ability : trackedAbilities) {
+                    int cooldown = rotation.getPublicAbilityCooldown(ability);
+                    boolean ready = cooldown <= 1;
+                    
+                    // Ability name
+                    ImGui.Text(ability);
+                    ImGui.NextColumn();
+                    
+                    // Cooldown
+                    if (cooldown > 0) {
+                        ImGui.Text(cooldown + " ticks");
+                    } else {
+                        ImGui.Text("Ready");
+                    }
+                    ImGui.NextColumn();
+                    
+                    // Status with color
+                    if (ready) {
+                        ImGui.TextColored(0, 255, 0, 255, "READY"); // Green
+                    } else {
+                        ImGui.TextColored(255, 165, 0, 255, "ON CD"); // Orange
+                    }
+                    ImGui.NextColumn();
+                }
+                
+                ImGui.Columns(1);
+                ImGui.Separator();
+                
+                // Recent ability usage log
+                ImGui.Text("Recent Usage:");
+                if (script.getRecentAbilityLog() != null) {
+                    String[] recentLog = script.getRecentAbilityLog();
+                    for (String logEntry : recentLog) {
+                        if (logEntry != null && !logEntry.isEmpty()) {
+                            ImGui.Text(logEntry);
+                        }
+                    }
+                }
+                
+            } else {
+                ImGui.Text("Rotation Manager not initialized");
+            }
+            
+            ImGui.End();
+        }
     }
 
     @Override
