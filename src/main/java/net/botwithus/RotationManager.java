@@ -183,25 +183,16 @@ public class RotationManager {
             debugLog(success ? "+ Ability cast was successful" : "- Ability cast was unsuccessful");
             
             if (success) {
-                // Don't record abilities with cooldowns as used immediately
-                // Let the validation system handle it on the next ability use
-                Integer maxCooldown = ABILITY_COOLDOWNS.get(ability);
-                if (maxCooldown != null && maxCooldown > 0) {
-                    debugLog("⚠ " + ability + " has cooldown - not recording immediately (will validate later)");
-                    updateTimer(); // Still update timer to prevent spam
-                    return true; // Return success but don't record as used
-                } else {
-                    // Record abilities with no cooldown immediately
-                    recordAbilityUse(ability);
-                    updateTimer();
-                    
-                    // Log ability sequence for debugging
-                    debugLog("= Ability sequence: " + previousAbilityUsed + " -> " + ability);
-                    
-                    // Validate previous ability was actually used (if not first ability)
-                    if (!previousAbilityUsed.equals("None")) {
-                        validatePreviousAbilityUse();
-                    }
+                // Record ability use for manual cooldown tracking
+                recordAbilityUse(ability);
+                updateTimer();
+                
+                // Log ability sequence for debugging
+                debugLog("= Ability sequence: " + previousAbilityUsed + " -> " + ability);
+                
+                // Validate previous ability was actually used (if not first ability)
+                if (!previousAbilityUsed.equals("None")) {
+                    validatePreviousAbilityUse();
                 }
             }
             
@@ -850,14 +841,28 @@ public class RotationManager {
             
             debugLog("[VALIDATION] Expected max cooldown: " + expectedMaxCooldown + " ticks");
             
-            // Ability has a cooldown, check if it's actually on cooldown
-            if (previousCooldown > 0) {
-                debugLog("[VALIDATION] ✓ " + previousAbilityUsed + " confirmed used (CD: " + previousCooldown + "/" + expectedMaxCooldown + " ticks)");
+            // Check if ability should have gone on cooldown but didn't
+            if (previousCooldown == 0) {
+                // Ability has no cooldown remaining - it either:
+                // 1. Was never actually used (failed due to range/conditions)
+                // 2. Has already expired (which is fine)
+                
+                Integer lastUsed = lastUsedTick.get(previousAbilityUsed);
+                if (lastUsed != null) {
+                    int ticksSinceRecorded = serverTick - lastUsed;
+                    
+                    // If we just recorded it (within 2 ticks) but it has no cooldown,
+                    // it probably failed and should be removed from tracking
+                    if (ticksSinceRecorded <= 2) {
+                        debugLog("[VALIDATION] ⚠ " + previousAbilityUsed + " was just used but has no cooldown - likely failed due to range/conditions");
+                        lastUsedTick.remove(previousAbilityUsed);
+                        debugLog("[VALIDATION] → " + previousAbilityUsed + " removed from tracking - now available for retry");
+                    } else {
+                        debugLog("[VALIDATION] ✓ " + previousAbilityUsed + " cooldown expired normally");
+                    }
+                }
             } else {
-                debugLog("[VALIDATION] ⚠ " + previousAbilityUsed + " was not actually used (no cooldown detected) - removing from tracking");
-                // Remove the ability from cooldown tracking so it can be used again
-                lastUsedTick.remove(previousAbilityUsed);
-                debugLog("[VALIDATION] → " + previousAbilityUsed + " is now available for retry");
+                debugLog("[VALIDATION] ✓ " + previousAbilityUsed + " confirmed used (CD: " + previousCooldown + "/" + expectedMaxCooldown + " ticks)");
             }
         } else {
             // Ability has no cooldown (basic abilities), assume it was used
