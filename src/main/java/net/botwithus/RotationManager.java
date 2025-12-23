@@ -183,16 +183,25 @@ public class RotationManager {
             debugLog(success ? "+ Ability cast was successful" : "- Ability cast was unsuccessful");
             
             if (success) {
-                // Record ability use for manual cooldown tracking
-                recordAbilityUse(ability);
-                updateTimer();
-                
-                // Log ability sequence for debugging
-                debugLog("= Ability sequence: " + previousAbilityUsed + " -> " + ability);
-                
-                // Validate previous ability was actually used (if not first ability)
-                if (!previousAbilityUsed.equals("None")) {
-                    validatePreviousAbilityUse();
+                // Don't record abilities with cooldowns as used immediately
+                // Let the validation system handle it on the next ability use
+                Integer maxCooldown = ABILITY_COOLDOWNS.get(ability);
+                if (maxCooldown != null && maxCooldown > 0) {
+                    debugLog("⚠ " + ability + " has cooldown - not recording immediately (will validate later)");
+                    updateTimer(); // Still update timer to prevent spam
+                    return true; // Return success but don't record as used
+                } else {
+                    // Record abilities with no cooldown immediately
+                    recordAbilityUse(ability);
+                    updateTimer();
+                    
+                    // Log ability sequence for debugging
+                    debugLog("= Ability sequence: " + previousAbilityUsed + " -> " + ability);
+                    
+                    // Validate previous ability was actually used (if not first ability)
+                    if (!previousAbilityUsed.equals("None")) {
+                        validatePreviousAbilityUse();
+                    }
                 }
             }
             
@@ -730,46 +739,39 @@ public class RotationManager {
     }
     
     /**
-     * Manually validate and clean up all ability cooldowns
-     * This can be called to fix stuck cooldowns
+     * Reset cooldown tracking for a specific ability (for manual correction)
      */
-    public void validateAllAbilities() {
-        debugLog("[MANUAL VALIDATION] Checking all tracked abilities...");
-        java.util.List<String> toRemove = new java.util.ArrayList<>();
+    public void resetAbilityCooldown(String abilityName) {
+        lastUsedTick.remove(abilityName);
+        debugLog("[MANUAL RESET] " + abilityName + " cooldown reset - now available");
+    }
+    
+    /**
+     * Get detailed cooldown information for debugging
+     */
+    public String getDetailedCooldownInfo(String abilityName) {
+        Integer lastUsed = lastUsedTick.get(abilityName);
+        if (lastUsed == null) {
+            return abilityName + ": Never used (Ready)";
+        }
         
-        for (java.util.Map.Entry<String, Integer> entry : lastUsedTick.entrySet()) {
-            String abilityName = entry.getKey();
-            int lastUsed = entry.getValue();
-            int ticksSinceUse = serverTick - lastUsed;
-            
-            Integer maxCooldown = ABILITY_COOLDOWNS.get(abilityName);
-            if (maxCooldown != null && maxCooldown > 0) {
-                // Special handling for Death Skulls during Living Death
-                int expectedCooldown = maxCooldown;
-                if (abilityName.equals("Death Skulls")) {
-                    Integer livingDeathUsed = lastUsedTick.get("Living Death");
-                    if (livingDeathUsed != null) {
-                        int ticksSinceLivingDeath = serverTick - livingDeathUsed;
-                        boolean livingDeathActive = ticksSinceLivingDeath < 50;
-                        if (livingDeathActive || deathSkullsUsedDuringLD) {
-                            expectedCooldown = 20;
-                        }
-                    }
-                }
-                
-                if (ticksSinceUse >= expectedCooldown) {
-                    debugLog("[MANUAL VALIDATION] " + abilityName + " should be ready (used " + ticksSinceUse + " ticks ago, expected CD: " + expectedCooldown + ")");
-                    toRemove.add(abilityName);
+        int ticksSinceUse = serverTick - lastUsed;
+        int cooldown = getAbilityCooldown(abilityName);
+        Integer maxCooldown = ABILITY_COOLDOWNS.get(abilityName);
+        
+        // Special case for Death Skulls during Living Death
+        if (abilityName.equals("Death Skulls") && maxCooldown != null) {
+            Integer livingDeathUsed = lastUsedTick.get("Living Death");
+            if (livingDeathUsed != null) {
+                int ticksSinceLivingDeath = serverTick - livingDeathUsed;
+                boolean livingDeathActive = ticksSinceLivingDeath < 50;
+                if (livingDeathActive || deathSkullsUsedDuringLD) {
+                    maxCooldown = 20;
                 }
             }
         }
         
-        for (String abilityName : toRemove) {
-            lastUsedTick.remove(abilityName);
-            debugLog("[MANUAL VALIDATION] → Removed " + abilityName + " from cooldown tracking");
-        }
-        
-        debugLog("[MANUAL VALIDATION] Validation complete - removed " + toRemove.size() + " abilities");
+        return abilityName + ": Used " + ticksSinceUse + " ticks ago, " + cooldown + "/" + maxCooldown + " remaining";
     }
     
     /**
@@ -781,16 +783,33 @@ public class RotationManager {
         }
         
         int previousCooldown = getAbilityCooldown(previousAbilityUsed);
-        Integer maxCooldown = ABILITY_COOLDOWNS.get(previousAbilityUsed);
+        Integer baseCooldown = ABILITY_COOLDOWNS.get(previousAbilityUsed);
         
         debugLog("[VALIDATION] Checking previous ability: " + previousAbilityUsed);
         debugLog("[VALIDATION] Current cooldown: " + previousCooldown + " ticks");
-        debugLog("[VALIDATION] Max cooldown: " + maxCooldown + " ticks");
         
-        if (maxCooldown != null && maxCooldown > 0) {
+        if (baseCooldown != null && baseCooldown > 0) {
+            // Calculate the expected cooldown for this ability (considering special cases)
+            int expectedMaxCooldown = baseCooldown;
+            
+            // Special case: Death Skulls has reduced cooldown during Living Death
+            if (previousAbilityUsed.equals("Death Skulls")) {
+                Integer livingDeathUsed = lastUsedTick.get("Living Death");
+                if (livingDeathUsed != null) {
+                    int ticksSinceLivingDeath = serverTick - livingDeathUsed;
+                    boolean livingDeathActive = ticksSinceLivingDeath < 50;
+                    
+                    if (livingDeathActive || deathSkullsUsedDuringLD) {
+                        expectedMaxCooldown = 20; // Reduced cooldown during Living Death
+                    }
+                }
+            }
+            
+            debugLog("[VALIDATION] Expected max cooldown: " + expectedMaxCooldown + " ticks");
+            
             // Ability has a cooldown, check if it's actually on cooldown
             if (previousCooldown > 0) {
-                debugLog("[VALIDATION] ✓ " + previousAbilityUsed + " confirmed used (CD: " + previousCooldown + "/" + maxCooldown + " ticks)");
+                debugLog("[VALIDATION] ✓ " + previousAbilityUsed + " confirmed used (CD: " + previousCooldown + "/" + expectedMaxCooldown + " ticks)");
             } else {
                 debugLog("[VALIDATION] ⚠ " + previousAbilityUsed + " was not actually used (no cooldown detected) - removing from tracking");
                 // Remove the ability from cooldown tracking so it can be used again
