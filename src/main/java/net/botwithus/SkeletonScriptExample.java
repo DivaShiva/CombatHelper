@@ -58,7 +58,20 @@ public class SkeletonScriptExample extends LoopingScript {
             if (rotation.execute()) {
                 lastAbilityServerTick = serverTicks;
                 String ability = rotation.getLastAbilityUsed();
+                String previousAbility = rotation.getPreviousAbilityUsed();
+                
+                // Log the ability sequence
                 println("Tick " + serverTicks + " - Using: " + ability);
+                
+                // Example: Check if previous ability is on cooldown (validation)
+                if (!previousAbility.equals("None")) {
+                    boolean prevOnCooldown = rotation.isPreviousAbilityOnCooldown();
+                    int prevCooldown = rotation.getPreviousAbilityCooldown();
+                    println("  Previous: " + previousAbility + " (CD: " + prevCooldown + " ticks, On CD: " + prevOnCooldown + ")");
+                }
+                
+                // Example: Get detailed sequence info
+                println("  " + rotation.getRotationSequenceInfo());
             }
         }
     }

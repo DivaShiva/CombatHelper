@@ -21,6 +21,17 @@ import java.util.function.Supplier;
 
 /**
  * Manages combat rotations with support for abilities, inventory items, and custom actions.
+ * 
+ * NEW FEATURES:
+ * - Previous ability tracking: Keeps track of the ability used before the current one
+ * - Ability sequence validation: Verifies abilities were actually used by checking cooldowns
+ * - Enhanced debugging: Provides detailed sequence information for troubleshooting
+ * 
+ * USAGE EXAMPLES:
+ * - rotation.getPreviousAbilityUsed() - Get the ability used before current one
+ * - rotation.isPreviousAbilityOnCooldown() - Check if previous ability is on cooldown (confirms use)
+ * - rotation.getPreviousAbilityCooldown() - Get exact cooldown remaining on previous ability
+ * - rotation.getRotationSequenceInfo() - Get formatted sequence info for logging
  */
 public class RotationManager {
     
@@ -35,6 +46,9 @@ public class RotationManager {
     
     // Track last ability used
     private String lastAbilityUsed = "None";
+    
+    // Track previous ability used (for sequence validation)
+    private String previousAbilityUsed = "None";
     
     // Track Conjure Undead Army usage (for 6 tick cooldown tracking)
     private int lastConjureArmyTick = -1;
@@ -160,7 +174,11 @@ public class RotationManager {
             
             String ability = improviseNecromancy(spend, player, necrosisStacks, soulStacks, livingDeathTick, bloated, armyConjureStatus);
             debugLog("= Designated improvise ability: " + ability);
+            
+            // Update ability sequence tracking
+            previousAbilityUsed = lastAbilityUsed;
             lastAbilityUsed = ability;
+            
             boolean success = useAbility(ability);
             debugLog(success ? "+ Ability cast was successful" : "- Ability cast was unsuccessful");
             
@@ -168,6 +186,14 @@ public class RotationManager {
                 // Record ability use for manual cooldown tracking
                 recordAbilityUse(ability);
                 updateTimer();
+                
+                // Log ability sequence for debugging
+                debugLog("= Ability sequence: " + previousAbilityUsed + " -> " + ability);
+                
+                // Validate previous ability was actually used (if not first ability)
+                if (!previousAbilityUsed.equals("None")) {
+                    validatePreviousAbilityUse();
+                }
             }
             
             return success;
@@ -597,7 +623,9 @@ public class RotationManager {
      */
     public void reset() {
         this.lastExecutionTick = 0;
-        debugLog("Rotation reset");
+        this.lastAbilityUsed = "None";
+        this.previousAbilityUsed = "None";
+        debugLog("Rotation reset - ability sequence cleared");
     }
 
         public void resetDeathMark() {
@@ -609,6 +637,97 @@ public class RotationManager {
     
     public String getLastAbilityUsed() {
         return lastAbilityUsed;
+    }
+    
+    /**
+     * Get the previously used ability
+     * @return the name of the ability used before the current one
+     */
+    public String getPreviousAbilityUsed() {
+        return previousAbilityUsed;
+    }
+    
+    /**
+     * Get the cooldown of the previous ability to verify it was actually used
+     * @return remaining cooldown in ticks, or -1 if no previous ability
+     */
+    public int getPreviousAbilityCooldown() {
+        if (previousAbilityUsed.equals("None")) {
+            return -1;
+        }
+        return getAbilityCooldown(previousAbilityUsed);
+    }
+    
+    /**
+     * Check if the previous ability is currently on cooldown (indicating it was used)
+     * @return true if previous ability is on cooldown, false if ready or no previous ability
+     */
+    public boolean isPreviousAbilityOnCooldown() {
+        if (previousAbilityUsed.equals("None")) {
+            return false;
+        }
+        return getAbilityCooldown(previousAbilityUsed) > 0;
+    }
+    
+    /**
+     * Check if an ability is ready, with context about the previous ability used
+     * This provides additional validation that the rotation is working as expected
+     * @param abilityName the ability to check
+     * @return true if the ability is ready
+     */
+    public boolean isAbilityReadyWithContext(String abilityName) {
+        boolean ready = isAbilityReady(abilityName);
+        
+        if (debug && !previousAbilityUsed.equals("None")) {
+            int previousCooldown = getAbilityCooldown(previousAbilityUsed);
+            debugLog("[CONTEXT] Checking " + abilityName + " readiness after " + previousAbilityUsed + 
+                    " (prev CD: " + previousCooldown + " ticks) -> " + (ready ? "READY" : "NOT READY"));
+        }
+        
+        return ready;
+    }
+    
+    /**
+     * Get detailed ability sequence information for debugging
+     * @return formatted string with current rotation state
+     */
+    public String getRotationSequenceInfo() {
+        StringBuilder info = new StringBuilder();
+        info.append("Sequence: ").append(previousAbilityUsed).append(" -> ").append(lastAbilityUsed);
+        
+        if (!previousAbilityUsed.equals("None")) {
+            int prevCooldown = getAbilityCooldown(previousAbilityUsed);
+            Integer maxCooldown = ABILITY_COOLDOWNS.get(previousAbilityUsed);
+            if (maxCooldown != null && maxCooldown > 0) {
+                info.append(" (prev CD: ").append(prevCooldown).append("/").append(maxCooldown).append(")");
+            }
+        }
+        
+        return info.toString();
+    }
+    
+    /**
+     * Validate that the previous ability was actually used by checking its cooldown
+     */
+    private void validatePreviousAbilityUse() {
+        if (previousAbilityUsed.equals("None") || previousAbilityUsed.equals("Basic<nbsp>Attack")) {
+            return; // No validation needed for first ability or basic attack
+        }
+        
+        int previousCooldown = getAbilityCooldown(previousAbilityUsed);
+        Integer maxCooldown = ABILITY_COOLDOWNS.get(previousAbilityUsed);
+        
+        if (maxCooldown != null && maxCooldown > 0) {
+            // Ability has a cooldown, check if it's actually on cooldown
+            if (previousCooldown > 0) {
+                debugLog("[VALIDATION] ✓ " + previousAbilityUsed + " confirmed used (CD: " + previousCooldown + "/" + maxCooldown + " ticks)");
+            } else {
+                debugLog("[VALIDATION] ⚠ " + previousAbilityUsed + " may not have been used (no cooldown detected)");
+            }
+        } else {
+            // Ability has no cooldown (basic abilities), assume it was used
+            debugLog("[VALIDATION] ✓ " + previousAbilityUsed + " assumed used (no cooldown ability)");
+        }
     }
     
     public void setUseAdrenalineRenewal(boolean useAdrenalineRenewal) {
