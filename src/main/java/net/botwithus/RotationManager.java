@@ -775,6 +775,49 @@ public class RotationManager {
     }
     
     /**
+     * Manually validate and clean up all ability cooldowns
+     * This can be called to fix stuck cooldowns
+     */
+    public void validateAllAbilities() {
+        debugLog("[MANUAL VALIDATION] Checking all tracked abilities...");
+        java.util.List<String> toRemove = new java.util.ArrayList<>();
+        
+        for (java.util.Map.Entry<String, Integer> entry : lastUsedTick.entrySet()) {
+            String abilityName = entry.getKey();
+            int lastUsed = entry.getValue();
+            int ticksSinceUse = serverTick - lastUsed;
+            
+            Integer maxCooldown = ABILITY_COOLDOWNS.get(abilityName);
+            if (maxCooldown != null && maxCooldown > 0) {
+                // Special handling for Death Skulls during Living Death
+                int expectedCooldown = maxCooldown;
+                if (abilityName.equals("Death Skulls")) {
+                    Integer livingDeathUsed = lastUsedTick.get("Living Death");
+                    if (livingDeathUsed != null) {
+                        int ticksSinceLivingDeath = serverTick - livingDeathUsed;
+                        boolean livingDeathActive = ticksSinceLivingDeath < 50;
+                        if (livingDeathActive || deathSkullsUsedDuringLD) {
+                            expectedCooldown = 20;
+                        }
+                    }
+                }
+                
+                if (ticksSinceUse >= expectedCooldown) {
+                    debugLog("[MANUAL VALIDATION] " + abilityName + " should be ready (used " + ticksSinceUse + " ticks ago, expected CD: " + expectedCooldown + ")");
+                    toRemove.add(abilityName);
+                }
+            }
+        }
+        
+        for (String abilityName : toRemove) {
+            lastUsedTick.remove(abilityName);
+            debugLog("[MANUAL VALIDATION] → Removed " + abilityName + " from cooldown tracking");
+        }
+        
+        debugLog("[MANUAL VALIDATION] Validation complete - removed " + toRemove.size() + " abilities");
+    }
+    
+    /**
      * Validate that the previous ability was actually used by checking its cooldown
      */
     private void validatePreviousAbilityUse() {
