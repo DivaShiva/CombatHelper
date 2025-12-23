@@ -144,6 +144,14 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
                 ImGui.Columns(1, "SingleColumn", false);
                 ImGui.Separator();
                 
+                // Manual validation button
+                if (ImGui.Button("Validate All Cooldowns")) {
+                    rotation.validateAllAbilities();
+                }
+                ImGui.SameLine();
+                ImGui.Text("Click to fix stuck cooldowns");
+                ImGui.Separator();
+                
                 // Recent ability usage log
                 ImGui.Text("Recent Usage:");
                 if (script.getRecentAbilityLog() != null) {
