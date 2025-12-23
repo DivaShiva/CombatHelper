@@ -722,7 +722,10 @@ public class RotationManager {
             if (previousCooldown > 0) {
                 debugLog("[VALIDATION] ✓ " + previousAbilityUsed + " confirmed used (CD: " + previousCooldown + "/" + maxCooldown + " ticks)");
             } else {
-                debugLog("[VALIDATION] ⚠ " + previousAbilityUsed + " may not have been used (no cooldown detected)");
+                debugLog("[VALIDATION] ⚠ " + previousAbilityUsed + " was not actually used (no cooldown detected) - removing from tracking");
+                // Remove the ability from cooldown tracking so it can be used again
+                lastUsedTick.remove(previousAbilityUsed);
+                debugLog("[VALIDATION] → " + previousAbilityUsed + " is now available for retry");
             }
         } else {
             // Ability has no cooldown (basic abilities), assume it was used
@@ -908,7 +911,7 @@ public class RotationManager {
     private boolean invokeDeathBuffActive = false;
     
     // Setting: Use Adrenaline Renewal with Living Death
-    private boolean useAdrenalineRenewal = false;
+
     
     // Setting: Use Split Soul
     private boolean useSplitSoul = true; // Default enabled
