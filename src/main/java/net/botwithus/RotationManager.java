@@ -310,27 +310,32 @@ public class RotationManager {
             if (isAbilityReady("Death Skulls") && adrenaline >= 60) {
                 ability = "Death Skulls";
                 debugLog("[IMPROV]: Living Death - Death Skulls");
-            } else if (isAbilityReady("Death Skulls")) {
-                debugLog("[IMPROV]: Death Skulls ready but insufficient adrenaline (" + adrenaline + "/60)");
             } else {
-                debugLog("[IMPROV]: Death Skulls not ready (CD: " + getAbilityCooldown("Death Skulls") + ")");
-            } else if (isAbilityReady("Touch of Death") && adrenaline < 60) {
-                ability = "Touch of Death";
-                debugLog("[IMPROV]: Living Death - Touch of Death (low adrenaline)");
-            } else if ((deathSkullsCooldown > 8 || adrenaline > 60) && necrosisStacks >= 6) {
-                ability = "Finger of Death";
-                debugLog("[IMPROV]: Living Death - Finger of Death");
-            } else if (isAbilityReady("Touch of Death")) {
-                ability = "Touch of Death";
-                debugLog("[IMPROV]: Living Death - Touch of Death");
-            } else if ((deathSkullsCooldown >= 8 || adrenaline > 60) && isAbilityReady("Command Skeleton Warrior")) {
-                ability = "Command Skeleton Warrior";
-                debugLog("[IMPROV]: Living Death - Command Skeleton Warrior");
-            } else {
-                // No ability to use, just wait
+                // Debug why Death Skulls wasn't used
+                if (isAbilityReady("Death Skulls")) {
+                    debugLog("[IMPROV]: Death Skulls ready but insufficient adrenaline (" + adrenaline + "/60)");
+                } else {
+                    debugLog("[IMPROV]: Death Skulls not ready (CD: " + getAbilityCooldown("Death Skulls") + ")");
+                }
                 
-                debugLog("[IMPROV]: Living Death - No ability ready, waiting");
-                return ability;
+                // Continue with other Living Death abilities
+                if (isAbilityReady("Touch of Death") && adrenaline < 60) {
+                    ability = "Touch of Death";
+                    debugLog("[IMPROV]: Living Death - Touch of Death (low adrenaline)");
+                } else if ((deathSkullsCooldown > 8 || adrenaline > 60) && necrosisStacks >= 6) {
+                    ability = "Finger of Death";
+                    debugLog("[IMPROV]: Living Death - Finger of Death");
+                } else if (isAbilityReady("Touch of Death")) {
+                    ability = "Touch of Death";
+                    debugLog("[IMPROV]: Living Death - Touch of Death");
+                } else if ((deathSkullsCooldown >= 8 || adrenaline > 60) && isAbilityReady("Command Skeleton Warrior")) {
+                    ability = "Command Skeleton Warrior";
+                    debugLog("[IMPROV]: Living Death - Command Skeleton Warrior");
+                } else {
+                    // No ability to use, just wait
+                    debugLog("[IMPROV]: Living Death - No ability ready, waiting");
+                    return ability;
+                }
             }
         } else {
             debugLog("[IMPROV]: Using Normal rotation");
