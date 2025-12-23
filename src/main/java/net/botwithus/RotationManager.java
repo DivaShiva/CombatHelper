@@ -310,6 +310,10 @@ public class RotationManager {
             if (isAbilityReady("Death Skulls") && adrenaline >= 60) {
                 ability = "Death Skulls";
                 debugLog("[IMPROV]: Living Death - Death Skulls");
+            } else if (isAbilityReady("Death Skulls")) {
+                debugLog("[IMPROV]: Death Skulls ready but insufficient adrenaline (" + adrenaline + "/60)");
+            } else {
+                debugLog("[IMPROV]: Death Skulls not ready (CD: " + getAbilityCooldown("Death Skulls") + ")");
             } else if (isAbilityReady("Touch of Death") && adrenaline < 60) {
                 ability = "Touch of Death";
                 debugLog("[IMPROV]: Living Death - Touch of Death (low adrenaline)");
@@ -337,6 +341,10 @@ public class RotationManager {
                     ability = "Death Skulls";
                     debugLog("[IMPROV]: Normal - Death Skulls");
                     return ability;
+                } else if (isAbilityReady("Death Skulls")) {
+                    debugLog("[IMPROV]: Death Skulls ready but insufficient adrenaline (" + adrenaline + "/60)");
+                } else {
+                    debugLog("[IMPROV]: Death Skulls not ready (CD: " + getAbilityCooldown("Death Skulls") + ")");
                 }
             } catch (Exception e) { debugLog("[ERROR] Death Skulls check: " + e.getMessage()); }
             
@@ -977,11 +985,17 @@ public class RotationManager {
     private boolean isAbilityReady(String abilityName) {
         // Check if ability exists in cache
         if (slotCacheInitialized && !slotCache.containsKey(abilityName)) {
+            debugLog("[READY CHECK] " + abilityName + " not in action bar cache");
             return false;
         }
         
         // Check manual cooldown
-        return getAbilityCooldown(abilityName) <= 1;
+        int cooldown = getAbilityCooldown(abilityName);
+        boolean ready = cooldown <= 1;
+        if (debug && !ready) {
+            debugLog("[READY CHECK] " + abilityName + " on cooldown (" + cooldown + " ticks remaining)");
+        }
+        return ready;
     }
     
     /**
